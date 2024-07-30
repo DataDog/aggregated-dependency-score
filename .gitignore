@@ -1,0 +1,5 @@
+# Python stuff
+*.pyc
+*.pyo
+__pycache__/
+.pytest_cache/
