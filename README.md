@@ -1,6 +1,6 @@
 # aggregated-dependency-score: A Dependency Score that Includes Transitive Dependencies
 
-TODO link to paper.
+Implementation of the algorithm described in [this blog post: "A Dependency Score that Includes Transitive Dependencies"](https://cedricvanrompay.fr/blog/aggregated-dependency-score/)
 
 
 ## Demo
