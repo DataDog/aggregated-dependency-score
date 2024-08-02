@@ -1,7 +1,6 @@
 import logging
 from math import log
 
-
 MIN_TRUSTWORTHINESS = 0.8
 # this is noted as "k" in the paper
 TRUSTWORTHINESS_OFFSET_PARAM = 60

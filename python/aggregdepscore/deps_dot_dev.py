@@ -5,7 +5,7 @@ import urllib.parse
 # and possibly rate limiting
 import requests
 
-from packages import Package
+from .package import Package
 
 _ECOSYSTEMS = {
     "npm",

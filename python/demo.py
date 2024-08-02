@@ -1,7 +1,7 @@
 import logging
 
-from aggregated_dependency_score import *
-import deps_dot_dev
+from aggregdepscore import *
+from aggregdepscore import deps_dot_dev
 
 logging.basicConfig(level=logging.DEBUG)
 

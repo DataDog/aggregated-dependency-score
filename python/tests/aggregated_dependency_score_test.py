@@ -1,6 +1,6 @@
 import pytest
 
-from aggregated_dependency_score import *
+from aggregdepscore import *
 
 @pytest.mark.parametrize("score", range(11))
 def test_trustworthiness_inversion(score):
