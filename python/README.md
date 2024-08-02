@@ -35,5 +35,7 @@ score: 2.7/10
 
 ## Development
 
+Requires [Poetry](https://python-poetry.org/).
+
 * setup: `poetry install`
 * testing: `poetry run python -m pytest`
