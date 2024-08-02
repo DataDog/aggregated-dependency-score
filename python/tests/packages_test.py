@@ -1,4 +1,4 @@
-from packages import *
+from aggregdepscore.package import *
 
 def test_package_from_any():
     assert Package.from_any("https://deps.dev/npm/express/4.18.3") == Package("npm", "express", "4.18.3")
