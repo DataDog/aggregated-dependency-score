@@ -10,12 +10,12 @@ type testIntrinsicTrustworthinessEvaluator struct {
 	trustworthinessByName map[string]float64
 }
 
-func (eval *testIntrinsicTrustworthinessEvaluator) Evaluate(ctx context.Context, p Package) (float64, error) {
-	if s, ok := eval.trustworthinessByName[p.name]; ok {
+func (eval *testIntrinsicTrustworthinessEvaluator) EvaluateIntrinsicTrustworthiness(ctx context.Context, p Package) (float64, error) {
+	if s, ok := eval.trustworthinessByName[p.Name]; ok {
 		return s, nil
 	}
 
-	return 0.0, fmt.Errorf("unknown package %q", p.name)
+	return 0.0, fmt.Errorf("unknown package %q", p.Name)
 }
 
 type testDependencyResolver struct {
@@ -23,14 +23,14 @@ type testDependencyResolver struct {
 }
 
 func (r *testDependencyResolver) GetDirectDependencies(ctx context.Context, p Package) ([]Package, error) {
-	names, ok := r.directDependencyNamesByName[p.name]
+	names, ok := r.directDependencyNamesByName[p.Name]
 	if !ok {
-		return nil, fmt.Errorf("unknown package %q", p.name)
+		return nil, fmt.Errorf("unknown package %q", p.Name)
 	}
 
 	var deps []Package
 	for _, name := range names {
-		deps = append(deps, Package{name: name})
+		deps = append(deps, Package{Name: name})
 	}
 
 	return deps, nil
@@ -51,7 +51,7 @@ func TestAggregatedTrustworthinessEvaluation(t *testing.T) {
 			},
 		}
 
-		tPrimeA, err := eval.Evaluate(context.Background(), Package{name: "A"})
+		tPrimeA, err := eval.evaluate(context.Background(), Package{Name: "A"})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -93,7 +93,7 @@ func TestAggregatedTrustworthinessEvaluation(t *testing.T) {
 			},
 		}
 
-		tPrimeA, err := eval.Evaluate(context.Background(), Package{name: "A"})
+		tPrimeA, err := eval.evaluate(context.Background(), Package{Name: "A"})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
