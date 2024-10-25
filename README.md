@@ -34,7 +34,7 @@ see [`cmd/depscore`](./cmd/depscore/).
 
 ```
 $ cd cmd/depscore
-$ go run .
+$ go run . --ecosystem pypi --package requests --version 2.28.1
 0.18347983371997253
 ```
 
