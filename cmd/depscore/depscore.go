@@ -7,7 +7,6 @@ import (
 	"os"
 
 	aggregdepscore "github.com/DataDog/aggregated-dependency-score"
-	"github.com/DataDog/aggregated-dependency-score/depsdotdev"
 )
 
 var (
@@ -33,12 +32,15 @@ func run() error {
 		return fmt.Errorf("validating flags: %w", err)
 	}
 
-	depsdotdevClient, err := depsdotdev.NewClient()
+	depsdotdev, err := aggregdepscore.NewDepsDotDevClient()
 	if err != nil {
 		return fmt.Errorf("creating deps.dev client: %w", err)
 	}
 
-	evaluator := aggregdepscore.NewEvaluator(depsdotdevClient, depsdotdevClient)
+	evaluator, err := aggregdepscore.NewEvaluator(depsdotdev, depsdotdev)
+	if err != nil {
+		return fmt.Errorf("creating evaluator: %w", err)
+	}
 	score, err := evaluator.EvaluateScore(context.Background(), aggregdepscore.Package{
 		Ecosystem: *ecosystem,
 		Name:      *packageName,

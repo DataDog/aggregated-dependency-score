@@ -24,26 +24,15 @@ unless explicitely mentionned otherwise.
 
 Note that module `github.com/DataDog/aggregated-dependency-score`
 does not provide dependency enumeration or intrinsic score evaluation;
-the user must provide its own. Module `github.com/DataDog/aggregated-dependency-score/depsdotdev`
-is _one_ way of getting both based on https://deps.dev,
-with the intrinsic score being [the OSSF Scorecard](https://securityscorecards.dev/)
-computed and cached by https://deps.dev.
+the user must provide its own.
+Right now, a function `NewDepsDotDevClient` provides an client for https://deps.dev
+that can do both, but in the future this client will be moved to a separate module
+(and most likely a separate repository)
+so that users not wanting to use it don't have to import its dependencies.
 
-To see an example of how to use the packages,
-see [`cmd/depscore`](./cmd/depscore/).
+To see an example of how to use the package, see [`cmd/depscore`](./cmd/depscore/):
 
 ```
-$ cd cmd/depscore
-$ go run . --ecosystem pypi --package requests --version 2.28.1
+$ go run ./cmd/depscore --ecosystem pypi --package requests --version 2.28.1
 0.18347983371997253
 ```
-
-> [!NOTE]
->
-> Due to how the Go modules in this repository are organized,
-> you _have_ to be located in [the `cmd/depscore` directory](./cmd/depscore/)
-> to run this binary. If you try to run `go run ./cmd/depscore` from the repository root,
-> you will get the following error:
-> ```
-> main module (github.com/DataDog/aggregated-dependency-score) does not contain package github.com/DataDog/aggregated-dependency-score/cmd/depscore
-> ```

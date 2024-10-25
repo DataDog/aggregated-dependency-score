@@ -1,4 +1,4 @@
-package depsdotdev
+package aggregdepscore
 
 import (
 	"context"
@@ -6,21 +6,27 @@ import (
 	"fmt"
 
 	api "deps.dev/api/v3"
-	aggregdepscore "github.com/DataDog/aggregated-dependency-score"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
-type Client struct {
+type client struct {
 	depsdotdev api.InsightsClient
-	converter  aggregdepscore.ScoreTrustworthinessConverter
+	converter  ScoreTrustworthinessConverter
 }
 
 // compile-time interface checks
-var _ aggregdepscore.IntrinsicTrustworthinessEvaluator = &Client{}
-var _ aggregdepscore.DependencyResolver = &Client{}
+var _ IntrinsicTrustworthinessEvaluator = &client{}
+var _ DependencyResolver = &client{}
 
-func NewClient() (*Client, error) {
+// NewDepsDotDevClient creates an object that satisfies both the IntrinsicTrustworthinessEvaluator and DependencyResolver interfaces,
+// using the deps.dev API as the source of data.
+// The intrinsic trustworthiness is calculated based on the OSSF scorecard that is returned by the deps.dev API.
+//
+// Deprecated: in version 1 of package aggregdepscore,
+// the deps.dev client will be moved to a new Go module, most likely in a new repository,
+// and this function will be removed.
+func NewDepsDotDevClient() (*client, error) {
 	connection, err := grpc.NewClient(
 		"api.deps.dev:443",
 		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
@@ -32,13 +38,13 @@ func NewClient() (*Client, error) {
 		return nil, fmt.Errorf("creating grpc connection: %w", err)
 	}
 
-	return &Client{
+	return &client{
 		depsdotdev: api.NewInsightsClient(connection),
-		converter:  &aggregdepscore.DefaultScoreTrustworthinessConverter{},
+		converter:  &DefaultScoreTrustworthinessConverter{},
 	}, nil
 }
 
-func (c *Client) EvaluateIntrinsicTrustworthiness(ctx context.Context, p aggregdepscore.Package) (float64, error) {
+func (c *client) EvaluateIntrinsicTrustworthiness(ctx context.Context, p Package) (float64, error) {
 	ecosystem, err := depsdotdevEcosystem(p.Ecosystem)
 	if err != nil {
 		return 0, fmt.Errorf("converting ecosystem: %w", err)
@@ -99,7 +105,7 @@ func (c *Client) EvaluateIntrinsicTrustworthiness(ctx context.Context, p aggregd
 
 }
 
-func (c *Client) GetDirectDependencies(ctx context.Context, p aggregdepscore.Package) ([]aggregdepscore.Package, error) {
+func (c *client) GetDirectDependencies(ctx context.Context, p Package) ([]Package, error) {
 	ecosystem, err := depsdotdevEcosystem(p.Ecosystem)
 	if err != nil {
 		return nil, fmt.Errorf("converting ecosystem: %w", err)
@@ -116,7 +122,7 @@ func (c *Client) GetDirectDependencies(ctx context.Context, p aggregdepscore.Pac
 		return nil, fmt.Errorf("fetching dependencies: %w", err)
 	}
 
-	var result []aggregdepscore.Package
+	var result []Package
 
 	for _, dep := range dependencies.Nodes {
 		if dep == nil || dep.Relation != api.DependencyRelation_DIRECT || dep.VersionKey == nil {
@@ -128,7 +134,7 @@ func (c *Client) GetDirectDependencies(ctx context.Context, p aggregdepscore.Pac
 			return nil, fmt.Errorf("converting ecosystem of dependency %v to string: %w", dep.VersionKey, err)
 		}
 
-		result = append(result, aggregdepscore.Package{
+		result = append(result, Package{
 			Ecosystem: depEcosystem,
 			Name:      dep.VersionKey.Name,
 			Version:   dep.VersionKey.Version,
@@ -136,4 +142,38 @@ func (c *Client) GetDirectDependencies(ctx context.Context, p aggregdepscore.Pac
 	}
 
 	return result, nil
+}
+
+func depsdotdevEcosystem(x string) (api.System, error) {
+	switch x {
+	case "pypi":
+		return api.System_PYPI, nil
+	case "npm":
+		return api.System_NPM, nil
+	case "maven":
+		return api.System_MAVEN, nil
+	case "cargo":
+		return api.System_CARGO, nil
+	case "go":
+		return api.System_GO, nil
+	default:
+		return api.System_SYSTEM_UNSPECIFIED, fmt.Errorf("unknown ecosystem: %q", x)
+	}
+}
+
+func depsdotdevEcosystemString(x api.System) (string, error) {
+	switch x {
+	case api.System_PYPI:
+		return "pypi", nil
+	case api.System_NPM:
+		return "npm", nil
+	case api.System_MAVEN:
+		return "maven", nil
+	case api.System_CARGO:
+		return "cargo", nil
+	case api.System_GO:
+		return "go", nil
+	default:
+		return "", fmt.Errorf("unknown ecosystem: %v", x)
+	}
 }
