@@ -3,6 +3,7 @@ package aggregdepscore
 import (
 	"context"
 	"fmt"
+	"math"
 	"testing"
 )
 
@@ -99,10 +100,13 @@ func TestAggregatedTrustworthinessEvaluation(t *testing.T) {
 		}
 
 		expected := 0.15379680196472223
+		// due to floating point arithmetic, we need to allow for a small error
+		// as the result may be a bit different from one CPU to another
+		allowedError := 1e-20
 
-		if tPrimeA != expected {
+		if math.Abs(tPrimeA-expected) > allowedError {
 			// using %g for full precision
-			t.Fatalf("expected %g, got %g", expected, tPrimeA)
+			t.Fatalf("expected %g, got %g (difference greater than %g)", expected, tPrimeA, allowedError)
 		}
 	})
 }
