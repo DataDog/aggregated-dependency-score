@@ -76,7 +76,7 @@ func (eval *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Package) 
 	for _, dep := range deps {
 		s, err := eval.evaluate(ctx, dep)
 		if err != nil {
-			return 0.0, fmt.Errorf("evaluating aggreated trustworthiness of %s: %w", dep.Name, err)
+			return 0.0, fmt.Errorf("evaluating aggregated trustworthiness of %s: %w", dep.Name, err)
 		}
 
 		result *= math.Pow(s, transitiveTrustworthinessExponent)
