@@ -104,6 +104,11 @@ func (c *client) EvaluateIntrinsicTrustworthiness(ctx context.Context, p Package
 
 	score := float64(project.Scorecard.OverallScore) / 10.0
 
+	// XXX OSSF scorecard tends to give pretty low scores
+	// so we may want to adjust the trustworthiness
+	// so that it better represents
+	// "the probability that the package turns malicious one day"
+
 	return c.converter.TrustworthinessFromScore(score), nil
 
 }
