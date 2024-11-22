@@ -38,6 +38,9 @@ func NewDepsDotDevClient() (*client, error) {
 		return nil, fmt.Errorf("creating grpc connection: %w", err)
 	}
 
+	// TODO let the user ask for caching
+	// or provide its own cache
+
 	return &client{
 		depsdotdev: api.NewInsightsClient(connection),
 		converter:  &DefaultScoreTrustworthinessConverter{},
