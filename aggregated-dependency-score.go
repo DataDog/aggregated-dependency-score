@@ -15,7 +15,7 @@ type Package struct {
 	Version   string
 }
 
-func (e *evaluator) EvaluateScore(ctx context.Context, p Package) (float64, error) {
+func (e *Evaluator) EvaluateScore(ctx context.Context, p Package) (float64, error) {
 	aggregatedTrustworthiness, err := e.trustworthiness.evaluate(ctx, p)
 	if err != nil {
 		return 0.0, err
@@ -24,7 +24,7 @@ func (e *evaluator) EvaluateScore(ctx context.Context, p Package) (float64, erro
 	return e.converter.ScoreFromTrustworthiness(aggregatedTrustworthiness), nil
 }
 
-func NewEvaluator(intrinsic IntrinsicTrustworthinessEvaluator, deps DependencyResolver) (*evaluator, error) {
+func NewEvaluator(intrinsic IntrinsicTrustworthinessEvaluator, deps DependencyResolver) (*Evaluator, error) {
 	if intrinsic == nil {
 		return nil, fmt.Errorf("intrinsic trustworthiness evaluator is required")
 	}
@@ -33,7 +33,7 @@ func NewEvaluator(intrinsic IntrinsicTrustworthinessEvaluator, deps DependencyRe
 		return nil, fmt.Errorf("dependency resolver is required")
 	}
 
-	return &evaluator{
+	return &Evaluator{
 		trustworthiness: trustwhorthinessEvaluator{
 			intrinsic: intrinsic,
 			deps:      deps,
@@ -42,7 +42,7 @@ func NewEvaluator(intrinsic IntrinsicTrustworthinessEvaluator, deps DependencyRe
 	}, nil
 }
 
-type evaluator struct {
+type Evaluator struct {
 	trustworthiness trustwhorthinessEvaluator
 	converter       ScoreTrustworthinessConverter
 }
@@ -74,12 +74,12 @@ func (eval *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Package) 
 	}
 
 	for _, dep := range deps {
-		s, err := eval.evaluate(ctx, dep)
+		tPrimeQ, err := eval.evaluate(ctx, dep)
 		if err != nil {
 			return 0.0, fmt.Errorf("evaluating aggregated trustworthiness of %s: %w", dep.Name, err)
 		}
 
-		result *= math.Pow(s, transitiveTrustworthinessExponent)
+		result *= math.Pow(tPrimeQ, transitiveTrustworthinessExponent)
 	}
 
 	return result, nil
