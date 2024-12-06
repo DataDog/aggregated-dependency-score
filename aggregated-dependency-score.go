@@ -15,6 +15,10 @@ type Package struct {
 	Version   string
 }
 
+type EvaluatorInterface interface {
+	EvaluateScore(ctx context.Context, p Package) (float64, error)
+}
+
 func (e *Evaluator) EvaluateScore(ctx context.Context, p Package) (float64, error) {
 	aggregatedTrustworthiness, err := e.trustworthiness.evaluate(ctx, p)
 	if err != nil {
@@ -46,6 +50,9 @@ type Evaluator struct {
 	trustworthiness trustwhorthinessEvaluator
 	converter       ScoreTrustworthinessConverter
 }
+
+// compile-time interface check
+var _ EvaluatorInterface = &Evaluator{}
 
 type trustwhorthinessEvaluator struct {
 	intrinsic IntrinsicTrustworthinessEvaluator
