@@ -133,14 +133,16 @@ func TestAggregatedTrustworthinessEvaluation(t *testing.T) {
 }
 
 func TestCycleHandling(t *testing.T) {
-	eval := trustwhorthinessEvaluator{
+	trustworthinessByName := map[string]float64{
+		"A": 0.92,
+		"B": 0.94,
+		"C": 0.93,
+	}
+
+	evaluator := trustwhorthinessEvaluator{
 		intrinsic: &testIntrinsicTrustworthinessEvaluator{
-			trustworthinessByName: map[string]float64{
-				"A": 0.92,
-				"B": 0.94,
-				"C": 0.93,
-			},
-			maxQueryNumber: 1,
+			trustworthinessByName: trustworthinessByName,
+			maxQueryNumber:        1,
 		},
 		deps: &testDependencyResolver{
 			directDependencyNamesByName: map[string][]string{
@@ -151,7 +153,7 @@ func TestCycleHandling(t *testing.T) {
 		},
 	}
 
-	_, err := eval.evaluate(context.Background(), Package{Name: "A"}, nil)
+	firstScore, err := evaluator.evaluate(context.Background(), Package{Name: "A"}, nil)
 	if err != nil {
 		var tooManyQueriesErr *ErrTooManyQueries
 		if errors.As(err, &tooManyQueriesErr) {
@@ -159,5 +161,38 @@ func TestCycleHandling(t *testing.T) {
 		}
 
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Note that what we want is *not* to account for each package only once;
+	// see example https://cedricvanrompay.fr/blog/aggregated-dependency-score/#incentivizing-the-removal-of-transitive-dependencies
+	// we are only ignoring cycles
+
+	evaluator = trustwhorthinessEvaluator{
+		intrinsic: &testIntrinsicTrustworthinessEvaluator{
+			trustworthinessByName: trustworthinessByName,
+			// in the future, the algorithm will not ask twice for the same package
+			// but that's just an optimization
+			// and not what we're testing here
+			maxQueryNumber: 2,
+		},
+		deps: &testDependencyResolver{
+			directDependencyNamesByName: map[string][]string{
+				"A": {"B", "C"},
+				"B": {"C"},
+				"C": {"A"},
+			},
+		},
+	}
+
+	secondScore, err := evaluator.evaluate(context.Background(), Package{Name: "A"}, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if secondScore >= firstScore {
+		t.Fatalf(
+			"adding a path to package did not decrease the score (before: %g, after: %g)",
+			firstScore, secondScore,
+		)
 	}
 }

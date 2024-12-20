@@ -78,7 +78,7 @@ func (evaluator *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Pack
 		// for instance with gopkg.in URLs;
 		// XXX should we consider the version as well?
 		if _, ok := ancestors[dep.Name]; ok {
-			// depedency cycle
+			// depedency cycle (see TestCycleHandling)
 			// TODO emit a log
 			continue
 		}
