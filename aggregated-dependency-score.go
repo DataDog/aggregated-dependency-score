@@ -60,15 +60,15 @@ type DependencyResolver interface {
 	GetDirectDependencies(ctx context.Context, p Package) ([]Package, error)
 }
 
-func (eval *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Package, ancestors map[string]struct{}) (float64, error) {
-	intrinsic, err := eval.intrinsic.EvaluateIntrinsicTrustworthiness(ctx, p)
+func (evaluator *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Package, ancestors map[string]struct{}) (float64, error) {
+	intrinsic, err := evaluator.intrinsic.EvaluateIntrinsicTrustworthiness(ctx, p)
 	if err != nil {
 		return 0.0, fmt.Errorf("evaluating intrinsic trustworthiness of package: %w", err)
 	}
 
 	result := intrinsic
 
-	deps, err := eval.deps.GetDirectDependencies(ctx, p)
+	deps, err := evaluator.deps.GetDirectDependencies(ctx, p)
 	if err != nil {
 		return 0.0, fmt.Errorf("getting direct dependencies of package: %w", err)
 	}
@@ -92,7 +92,7 @@ func (eval *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Package, 
 		}
 		childAncestors[p.Name] = struct{}{}
 
-		tPrimeQ, err := eval.evaluate(ctx, dep, childAncestors)
+		tPrimeQ, err := evaluator.evaluate(ctx, dep, childAncestors)
 		if err != nil {
 			return 0.0, fmt.Errorf("evaluating aggregated trustworthiness of %s: %w", dep.Name, err)
 		}
