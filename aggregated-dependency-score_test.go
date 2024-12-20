@@ -2,6 +2,7 @@ package aggregdepscore
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"testing"
@@ -9,9 +10,29 @@ import (
 
 type testIntrinsicTrustworthinessEvaluator struct {
 	trustworthinessByName map[string]float64
+	maxQueryNumber        int
+	nbQueryByPackage      map[string]int
+}
+
+type ErrTooManyQueries struct {
+	PackageName string
+	nbQueries   int
+}
+
+func (e ErrTooManyQueries) Error() string {
+	return fmt.Sprintf("too many queries (%d) for package %q", e.nbQueries, e.PackageName)
 }
 
 func (eval *testIntrinsicTrustworthinessEvaluator) EvaluateIntrinsicTrustworthiness(ctx context.Context, p Package) (float64, error) {
+	if eval.nbQueryByPackage == nil {
+		eval.nbQueryByPackage = make(map[string]int)
+	}
+	eval.nbQueryByPackage[p.Name]++
+
+	if eval.maxQueryNumber > 0 && eval.nbQueryByPackage[p.Name] > eval.maxQueryNumber {
+		return 0.0, &ErrTooManyQueries{PackageName: p.Name, nbQueries: eval.nbQueryByPackage[p.Name]}
+	}
+
 	if s, ok := eval.trustworthinessByName[p.Name]; ok {
 		return s, nil
 	}
@@ -52,7 +73,7 @@ func TestAggregatedTrustworthinessEvaluation(t *testing.T) {
 			},
 		}
 
-		tPrimeA, err := eval.evaluate(context.Background(), Package{Name: "A"})
+		tPrimeA, err := eval.evaluate(context.Background(), Package{Name: "A"}, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -94,7 +115,7 @@ func TestAggregatedTrustworthinessEvaluation(t *testing.T) {
 			},
 		}
 
-		tPrimeA, err := eval.evaluate(context.Background(), Package{Name: "A"})
+		tPrimeA, err := eval.evaluate(context.Background(), Package{Name: "A"}, nil)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -109,4 +130,69 @@ func TestAggregatedTrustworthinessEvaluation(t *testing.T) {
 			t.Fatalf("expected %g, got %g (difference greater than %g)", expected, tPrimeA, allowedError)
 		}
 	})
+}
+
+func TestCycleHandling(t *testing.T) {
+	trustworthinessByName := map[string]float64{
+		"A": 0.92,
+		"B": 0.94,
+		"C": 0.93,
+	}
+
+	evaluator := trustwhorthinessEvaluator{
+		intrinsic: &testIntrinsicTrustworthinessEvaluator{
+			trustworthinessByName: trustworthinessByName,
+			maxQueryNumber:        1,
+		},
+		deps: &testDependencyResolver{
+			directDependencyNamesByName: map[string][]string{
+				"A": {"B"},
+				"B": {"C"},
+				"C": {"A"},
+			},
+		},
+	}
+
+	firstScore, err := evaluator.evaluate(context.Background(), Package{Name: "A"}, nil)
+	if err != nil {
+		var tooManyQueriesErr *ErrTooManyQueries
+		if errors.As(err, &tooManyQueriesErr) {
+			t.Fatalf("failed to ignore dependency cycle: %v", err)
+		}
+
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Note that what we want is *not* to account for each package only once;
+	// see example https://cedricvanrompay.fr/blog/aggregated-dependency-score/#incentivizing-the-removal-of-transitive-dependencies
+	// we are only ignoring cycles
+
+	evaluator = trustwhorthinessEvaluator{
+		intrinsic: &testIntrinsicTrustworthinessEvaluator{
+			trustworthinessByName: trustworthinessByName,
+			// in the future, the algorithm will not ask twice for the same package
+			// but that's just an optimization
+			// and not what we're testing here
+			maxQueryNumber: 2,
+		},
+		deps: &testDependencyResolver{
+			directDependencyNamesByName: map[string][]string{
+				"A": {"B", "C"},
+				"B": {"C"},
+				"C": {"A"},
+			},
+		},
+	}
+
+	secondScore, err := evaluator.evaluate(context.Background(), Package{Name: "A"}, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if secondScore >= firstScore {
+		t.Fatalf(
+			"adding a path to package did not decrease the score (before: %g, after: %g)",
+			firstScore, secondScore,
+		)
+	}
 }

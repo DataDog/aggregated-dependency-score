@@ -16,7 +16,7 @@ type Package struct {
 }
 
 func (e *Evaluator) EvaluateScore(ctx context.Context, p Package) (float64, error) {
-	aggregatedTrustworthiness, err := e.trustworthiness.evaluate(ctx, p)
+	aggregatedTrustworthiness, err := e.trustworthiness.evaluate(ctx, p, nil)
 	if err != nil {
 		return 0.0, err
 	}
@@ -60,21 +60,39 @@ type DependencyResolver interface {
 	GetDirectDependencies(ctx context.Context, p Package) ([]Package, error)
 }
 
-func (eval *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Package) (float64, error) {
-	intrinsic, err := eval.intrinsic.EvaluateIntrinsicTrustworthiness(ctx, p)
+func (evaluator *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Package, ancestors map[string]struct{}) (float64, error) {
+	intrinsic, err := evaluator.intrinsic.EvaluateIntrinsicTrustworthiness(ctx, p)
 	if err != nil {
 		return 0.0, fmt.Errorf("evaluating intrinsic trustworthiness of package: %w", err)
 	}
 
 	result := intrinsic
 
-	deps, err := eval.deps.GetDirectDependencies(ctx, p)
+	deps, err := evaluator.deps.GetDirectDependencies(ctx, p)
 	if err != nil {
 		return 0.0, fmt.Errorf("getting direct dependencies of package: %w", err)
 	}
 
 	for _, dep := range deps {
-		tPrimeQ, err := eval.evaluate(ctx, dep)
+		// XXX sometimes different names can refer to the same package,
+		// for instance with gopkg.in URLs;
+		// XXX should we consider the version as well?
+		if _, ok := ancestors[dep.Name]; ok {
+			// depedency cycle (see TestCycleHandling)
+			// TODO emit a log
+			continue
+		}
+
+		// copy ancestors to avoid modifying the original map;
+		// one day we may want to run the algorithm in parallel
+		// so we will need to be careful with shared state
+		childAncestors := make(map[string]struct{})
+		for k, v := range ancestors {
+			childAncestors[k] = v
+		}
+		childAncestors[p.Name] = struct{}{}
+
+		tPrimeQ, err := evaluator.evaluate(ctx, dep, childAncestors)
 		if err != nil {
 			return 0.0, fmt.Errorf("evaluating aggregated trustworthiness of %s: %w", dep.Name, err)
 		}
