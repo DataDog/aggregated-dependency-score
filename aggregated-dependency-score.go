@@ -74,6 +74,9 @@ func (eval *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Package, 
 	}
 
 	for _, dep := range deps {
+		// XXX sometimes different names can refer to the same package,
+		// for instance with gopkg.in URLs;
+		// XXX should we consider the version as well?
 		if _, ok := ancestors[dep.Name]; ok {
 			// depedency cycle
 			// TODO emit a log
