@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"strings"
 
 	api "deps.dev/api/v3"
 	"google.golang.org/grpc"
@@ -47,10 +48,10 @@ func NewDepsDotDevClient() (*client, error) {
 	}, nil
 }
 
-func (c *client) EvaluateIntrinsicTrustworthiness(ctx context.Context, p Package) (float64, error) {
+func (c *client) getRespository(ctx context.Context, p Package) (string, error) {
 	ecosystem, err := depsdotdevEcosystem(p.Ecosystem)
 	if err != nil {
-		return 0, fmt.Errorf("converting ecosystem: %w", err)
+		return "", fmt.Errorf("converting ecosystem: %w", err)
 	}
 
 	version, err := c.depsdotdev.GetVersion(ctx, &api.GetVersionRequest{
@@ -61,7 +62,7 @@ func (c *client) EvaluateIntrinsicTrustworthiness(ctx context.Context, p Package
 		},
 	})
 	if err != nil {
-		return 0, fmt.Errorf("fetching package version: %w", err)
+		return "", fmt.Errorf("fetching package version: %w", err)
 	}
 
 	var repository string
@@ -85,8 +86,29 @@ func (c *client) EvaluateIntrinsicTrustworthiness(ctx context.Context, p Package
 		break
 	}
 
-	if repository == "" {
-		return 0, fmt.Errorf("no source repository found for package version")
+	if repository != "" {
+		return repository, nil
+	}
+
+	// deps.dev does not find the repository for gopkg.in packages
+	// Cédric Van Rompay reported it to depsdev@google.com on 2025-01-03
+	// in the meantime we use this workaround
+	if p.Ecosystem == "go" && strings.HasPrefix(p.Name, "gopkg.in/") {
+		repository, err := getGopkginRepository(p.Name)
+		if err != nil {
+			return "", fmt.Errorf("getting repository for gopkg.in package: %w", err)
+		}
+
+		return repository, nil
+	}
+
+	return "", fmt.Errorf("no source repository found for package version")
+}
+
+func (c *client) EvaluateIntrinsicTrustworthiness(ctx context.Context, p Package) (float64, error) {
+	repository, err := c.getRespository(ctx, p)
+	if err != nil {
+		return 0, fmt.Errorf("getting repository: %w", err)
 	}
 
 	project, err := c.depsdotdev.GetProject(ctx, &api.GetProjectRequest{
