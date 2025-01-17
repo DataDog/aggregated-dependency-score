@@ -183,6 +183,8 @@ func depsdotdevEcosystem(x string) (api.System, error) {
 	case "maven":
 		return api.System_MAVEN, nil
 	case "cargo":
+		return api.System_SYSTEM_UNSPECIFIED, fmt.Errorf(`please use "crates.io" instead of "cargo"`)
+	case "crates.io":
 		return api.System_CARGO, nil
 	case "go":
 		return api.System_GO, nil
@@ -200,7 +202,7 @@ func depsdotdevEcosystemString(x api.System) (string, error) {
 	case api.System_MAVEN:
 		return "maven", nil
 	case api.System_CARGO:
-		return "cargo", nil
+		return "crates.io", nil
 	case api.System_GO:
 		return "go", nil
 	default:
