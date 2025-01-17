@@ -1,0 +1,28 @@
+{
+    "real_cases": [
+        {
+            "name": "gopkg.in package, implicit owner",
+            "package": {
+                "ecosystem": "go",
+                "name": "gopkg.in/yaml.v3",
+                "version": "v3.0.1"
+            }
+        },
+        {
+            "name": "gopkg.in package, explicit owner",
+            "package": {
+                "ecosystem": "go",
+                "name": "gopkg.in/natefinch/lumberjack.v3",
+                "version": "v2.1.0+incompatible"
+            }
+        },
+        {
+            "name": "NPM package with bundled dependencies",
+            "package": {
+                "ecosystem": "npm",
+                "name": "cdk8s",
+                "version": "2.69.33"
+            }
+        }
+    ]
+}
