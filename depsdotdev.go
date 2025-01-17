@@ -141,21 +141,28 @@ func (c *client) GetDirectDependencies(ctx context.Context, p Package) ([]Packag
 		return nil, fmt.Errorf("converting ecosystem: %w", err)
 	}
 
-	dependencies, err := c.depsdotdev.GetDependencies(ctx, &api.GetDependenciesRequest{
-		VersionKey: &api.VersionKey{
-			System:  ecosystem,
-			Name:    p.Name,
-			Version: p.Version,
-		},
-	})
+	versionKey := &api.VersionKey{
+		System:  ecosystem,
+		Name:    p.Name,
+		Version: p.Version,
+	}
+
+	dependencies, err := c.depsdotdev.GetDependencies(ctx, &api.GetDependenciesRequest{VersionKey: versionKey})
 	if err != nil {
 		return nil, fmt.Errorf("fetching dependencies: %w", err)
 	}
 
 	var result []Package
 
+	hasBundledDependencies := false
+
 	for _, dep := range dependencies.Nodes {
 		if dep == nil || dep.Relation != api.DependencyRelation_DIRECT || dep.VersionKey == nil {
+			continue
+		}
+
+		if dep.Bundled {
+			hasBundledDependencies = true
 			continue
 		}
 
@@ -168,6 +175,70 @@ func (c *client) GetDirectDependencies(ctx context.Context, p Package) ([]Packag
 			Ecosystem: depEcosystem,
 			Name:      dep.VersionKey.Name,
 			Version:   dep.VersionKey.Version,
+		})
+	}
+
+	if hasBundledDependencies {
+		if p.Ecosystem == "npm" {
+			bundledDependencies, err := c.getNPMBundledDependencies(ctx, versionKey)
+			if err != nil {
+				return nil, fmt.Errorf("getting bundled dependencies: %w", err)
+			}
+
+			result = append(result, bundledDependencies...)
+		}
+
+		// TODO log a warning if hasBundledDependencies is true and the ecosystem is NOT npm
+	}
+
+	return result, nil
+}
+
+func (c *client) getNPMBundledDependencies(ctx context.Context, versionKey *api.VersionKey) ([]Package, error) {
+	ecosystem := "npm"
+
+	if versionKey.System != api.System_NPM {
+		return nil, fmt.Errorf("bundled dependencies are only supported for npm")
+	}
+
+	requirements, err := c.depsdotdev.GetRequirements(ctx, &api.GetRequirementsRequest{VersionKey: versionKey})
+	if err != nil {
+		return nil, fmt.Errorf("fetching requirements: %w", err)
+	}
+
+	if requirements.Npm == nil {
+		return nil, fmt.Errorf("requirements.Npm is nil")
+	}
+
+	if requirements.Npm.Bundled == nil {
+		return nil, fmt.Errorf("requirements.Npm.Bundled is nil")
+	}
+
+	var result []Package
+
+	for _, dep := range requirements.Npm.Bundled {
+		if dep == nil {
+			// TODO log a warning
+			continue
+		}
+
+		// variable dep *api.Requirements_NPM_Bundle has a "Name" field
+		// but it does not include the NPM namespace,
+		// for instance for package https://www.npmjs.com/package/@balena/dockerignore
+		// the Name field is "dockerignore";
+		// and we do need the namespace in Package.Name.
+		// fortunately, the Path field seems to be "node_modules/" plus the name with namespace
+		// so we use it instead.
+
+		if !strings.HasPrefix(dep.Path, "node_modules/") {
+			// TODO log a warning
+			continue
+		}
+
+		result = append(result, Package{
+			Ecosystem: ecosystem,
+			Name:      dep.Path[len("node_modules/"):],
+			Version:   dep.Version,
 		})
 	}
 
