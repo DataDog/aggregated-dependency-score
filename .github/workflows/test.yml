@@ -14,9 +14,7 @@ jobs:
       uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
       with:
         go-version: 1.23
-    - name: Run go test
+    - name: Run go unit tests
       run: go test -v ./...
-    - name: "Test Go Demo Program: gopkg.in package, implicit owner"
-      run : go run ./cmd/depscore --ecosystem go --package gopkg.in/yaml.v3 --version v3.0.1
-    - name: "Test Go Demo Program: gopkg.in package, explicit owner"
-      run : go run ./cmd/depscore --ecosystem go --package gopkg.in/natefinch/lumberjack.v3 --version v2.1.0+incompatible
+    - name: Run go integration tests
+      run: go run ./cmd/integration-tests
