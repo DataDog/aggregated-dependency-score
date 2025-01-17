@@ -188,7 +188,7 @@ func (c *client) GetDirectDependencies(ctx context.Context, p Package) ([]Packag
 			result = append(result, bundledDependencies...)
 		}
 
-		// TODO log a warning if hasBundledDependencies is true and the ecosystem is NOT npm
+		// TODO (https://github.com/DataDog/aggregated-dependency-score/issues/19) log a warning if hasBundledDependencies is true and the ecosystem is NOT npm
 	}
 
 	return result, nil
@@ -218,7 +218,7 @@ func (c *client) getNPMBundledDependencies(ctx context.Context, versionKey *api.
 
 	for _, dep := range requirements.Npm.Bundled {
 		if dep == nil {
-			// TODO log a warning
+			// TODO (https://github.com/DataDog/aggregated-dependency-score/issues/19) log a warning
 			continue
 		}
 
@@ -231,7 +231,7 @@ func (c *client) getNPMBundledDependencies(ctx context.Context, versionKey *api.
 		// so we use it instead.
 
 		if !strings.HasPrefix(dep.Path, "node_modules/") {
-			// TODO log a warning
+			// TODO (https://github.com/DataDog/aggregated-dependency-score/issues/19) log a warning
 			continue
 		}
 

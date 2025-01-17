@@ -88,7 +88,7 @@ func (evaluator *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Pack
 		// XXX should we consider the version as well?
 		if _, ok := ancestors[dep.Name]; ok {
 			// depedency cycle (see TestCycleHandling)
-			// TODO emit a log
+			// TODO (https://github.com/DataDog/aggregated-dependency-score/issues/19) emit a log
 			continue
 		}
 
