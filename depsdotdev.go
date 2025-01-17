@@ -179,6 +179,7 @@ func (c *client) GetDirectDependencies(ctx context.Context, p Package) ([]Packag
 	}
 
 	if hasBundledDependencies {
+		// TODO use string constants for the ecosystem names
 		if p.Ecosystem == "npm" {
 			bundledDependencies, err := c.getNPMBundledDependencies(ctx, versionKey)
 			if err != nil {
