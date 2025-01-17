@@ -186,6 +186,8 @@ func depsdotdevEcosystem(x string) (api.System, error) {
 		return api.System_SYSTEM_UNSPECIFIED, fmt.Errorf(`please use "crates.io" instead of "cargo"`)
 	case "crates.io":
 		return api.System_CARGO, nil
+	case "nuget":
+		return api.System_NUGET, nil
 	case "go":
 		return api.System_GO, nil
 	default:
@@ -205,6 +207,8 @@ func depsdotdevEcosystemString(x api.System) (string, error) {
 		return "crates.io", nil
 	case api.System_GO:
 		return "go", nil
+	case api.System_NUGET:
+		return "nuget", nil
 	default:
 		return "", fmt.Errorf("unknown ecosystem: %v", x)
 	}
