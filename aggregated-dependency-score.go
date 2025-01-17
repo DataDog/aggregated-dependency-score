@@ -15,6 +15,15 @@ type Package struct {
 	Version   string
 }
 
+// String returns a string representation of the package;
+//
+// Warning: this may be changed in the future
+// to return a package-url (a.k.a. "purl") string
+// (see https://github.com/package-url/purl-spec)
+func (p Package) String() string {
+	return fmt.Sprintf("%#v", p)
+}
+
 func (e *Evaluator) EvaluateScore(ctx context.Context, p Package) (float64, error) {
 	aggregatedTrustworthiness, err := e.trustworthiness.evaluate(ctx, p, nil)
 	if err != nil {
@@ -94,7 +103,7 @@ func (evaluator *trustwhorthinessEvaluator) evaluate(ctx context.Context, p Pack
 
 		tPrimeQ, err := evaluator.evaluate(ctx, dep, childAncestors)
 		if err != nil {
-			return 0.0, fmt.Errorf("evaluating aggregated trustworthiness of %s: %w", dep.Name, err)
+			return 0.0, fmt.Errorf("evaluating aggregated trustworthiness of %s: %w", dep, err)
 		}
 
 		result *= math.Pow(tPrimeQ, transitiveTrustworthinessExponent)
