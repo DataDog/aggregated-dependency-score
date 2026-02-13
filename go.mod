@@ -1,6 +1,6 @@
 module github.com/DataDog/aggregated-dependency-score
 
-go 1.23.1
+go 1.25.7
 
 require (
 	deps.dev/api/v3 v3.0.0-20241010035105-b3ba03369df1
