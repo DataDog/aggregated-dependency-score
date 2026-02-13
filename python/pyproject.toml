@@ -9,7 +9,13 @@ readme = "README.md"
 python = "^3.12"
 
 [tool.poetry.group.test.dependencies]
-pytest = "^8.3.2"
+pytest = "^8.3.5"
+
+
+[[tool.poetry.source]]
+name = "internal"
+url = "https://depot-read-api-python.us1.ddbuild.io/magicmirror/magicmirror/@current/simple/"
+priority = "primary"
 
 [build-system]
 requires = ["poetry-core"]
